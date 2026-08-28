@@ -1,0 +1,9 @@
+{
+  "name": "GS Ready - Interview Assistant",
+  "short_name": "GS Ready",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f4f7fb",
+  "theme_color": "#0b3b72",
+  "icons": []
+}
