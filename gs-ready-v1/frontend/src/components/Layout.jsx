@@ -87,9 +87,9 @@ export default function Layout() {
             Route navigation-la unnecessary
             remount avoid pannum.
         */}
-        <ErrorBoundary>
-          <Outlet />
-        </ErrorBoundary>
+        <ErrorBoundary resetKey={location.pathname}>
+  <Outlet />
+</ErrorBoundary>
       </main>
 
       <nav className="bottom-nav">
