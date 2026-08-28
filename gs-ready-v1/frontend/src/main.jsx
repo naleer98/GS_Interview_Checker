@@ -4,46 +4,110 @@ import { BrowserRouter } from 'react-router-dom';
 
 import App from './App.jsx';
 import { AuthProvider } from './context/AuthContext.jsx';
+import ErrorBoundary from './components/ErrorBoundary.jsx';
 
 import './styles.css';
 
-/*
-  Old GS Ready service workers remove.
-  This prevents stale Vercel builds / cached app versions.
-*/
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', async () => {
-    try {
-      const registrations =
-        await navigator.serviceWorker.getRegistrations();
+async function removeOldServiceWorkers() {
+  if (!('serviceWorker' in navigator)) {
+    return false;
+  }
 
-      for (const registration of registrations) {
-        await registration.unregister();
-      }
+  try {
+    const hadController =
+      Boolean(navigator.serviceWorker.controller);
 
-      if ('caches' in window) {
-        const keys = await caches.keys();
+    const registrations =
+      await navigator.serviceWorker.getRegistrations();
 
-        await Promise.all(
-          keys
-            .filter((key) => key.startsWith('gs-ready'))
-            .map((key) => caches.delete(key))
-        );
-      }
-    } catch (error) {
-      console.warn('Service worker cleanup failed:', error);
+    await Promise.all(
+      registrations.map((registration) =>
+        registration.unregister()
+      )
+    );
+
+    if ('caches' in window) {
+      const cacheNames = await caches.keys();
+
+      await Promise.all(
+        cacheNames.map((cacheName) =>
+          caches.delete(cacheName)
+        )
+      );
     }
-  });
+
+    /*
+      Old SW current tab-ai control pannittu
+      irundha one time reload pannuvom.
+
+      Reload mudinja new page old SW control-la
+      irukkaathu.
+    */
+    if (
+      hadController &&
+      sessionStorage.getItem(
+        'gs_ready_sw_cleanup'
+      ) !== 'done'
+    ) {
+      sessionStorage.setItem(
+        'gs_ready_sw_cleanup',
+        'done'
+      );
+
+      window.location.reload();
+
+      return true;
+    }
+
+    return false;
+
+  } catch (error) {
+    console.warn(
+      'Service worker cleanup failed:',
+      error
+    );
+
+    return false;
+  }
 }
 
-ReactDOM.createRoot(
-  document.getElementById('root')
-).render(
-  <React.StrictMode>
-    <BrowserRouter>
-      <AuthProvider>
-        <App />
-      </AuthProvider>
-    </BrowserRouter>
-  </React.StrictMode>
-);
+async function startApp() {
+
+  const reloading =
+    await removeOldServiceWorkers();
+
+  if (reloading) {
+    return;
+  }
+
+  const rootElement =
+    document.getElementById('root');
+
+  if (!rootElement) {
+    console.error(
+      'Root element not found.'
+    );
+
+    return;
+  }
+
+  ReactDOM
+    .createRoot(rootElement)
+    .render(
+      <ErrorBoundary>
+
+        <BrowserRouter>
+
+          <AuthProvider>
+
+            <App />
+
+          </AuthProvider>
+
+        </BrowserRouter>
+
+      </ErrorBoundary>
+    );
+}
+
+startApp();
